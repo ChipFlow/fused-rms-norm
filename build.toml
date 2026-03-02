@@ -1,0 +1,18 @@
+[general]
+name = "fused_rms_norm"
+backends = ["metal"]
+
+[torch]
+src = [
+  "torch-ext/torch_binding.cpp",
+  "torch-ext/torch_binding.h",
+]
+
+[kernel.fused_rms_norm_metal]
+backend = "metal"
+src = [
+  "fused-rms-norm-metal/rms_norm.metal",
+  "fused-rms-norm-metal/rms_norm.mm",
+  "fused-rms-norm-metal/utils.metal",
+]
+depends = ["torch"]
