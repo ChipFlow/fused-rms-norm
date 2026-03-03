@@ -4,23 +4,17 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
-#include <dlfcn.h>
 #include <string>
+
+// Include the auto-generated header with embedded metallib.
+#ifdef EMBEDDED_METALLIB_HEADER
+#include EMBEDDED_METALLIB_HEADER
+#else
+#error "EMBEDDED_METALLIB_HEADER not defined"
+#endif
 
 static inline id<MTLBuffer> getMTLBufferStorage(const torch::Tensor &tensor) {
   return __builtin_bit_cast(id<MTLBuffer>, tensor.storage().data());
-}
-
-static std::string getModuleDirectory() {
-  Dl_info dl_info;
-  if (dladdr((void *)getModuleDirectory, &dl_info)) {
-    std::string path(dl_info.dli_fname);
-    size_t pos = path.find_last_of('/');
-    if (pos != std::string::npos) {
-      return path.substr(0, pos);
-    }
-  }
-  return ".";
 }
 
 // Helper to select kernel name by dtype.
@@ -39,18 +33,12 @@ static NSString *kernelNameForDtype(const char *prefix,
   }
 }
 
-// Helper to load metallib and create pipeline state.
+// Helper to load embedded metallib and create pipeline state.
 static id<MTLComputePipelineState>
 createPipeline(id<MTLDevice> device, NSString *kernName, NSError **error) {
-  std::string moduleDir = getModuleDirectory();
-  std::string metallibPath = moduleDir + "/" + METALLIB_PATH;
-
-  NSString *metallibPathStr =
-      [NSString stringWithUTF8String:metallibPath.c_str()];
-  NSURL *metallibURL = [NSURL fileURLWithPath:metallibPathStr];
-
-  id<MTLLibrary> lib = [device newLibraryWithURL:metallibURL error:error];
-  TORCH_CHECK(lib, "Failed to load Metal library at ", metallibPath,
+  id<MTLLibrary> lib =
+      EMBEDDED_METALLIB_NAMESPACE::createLibrary(device, error);
+  TORCH_CHECK(lib, "Failed to create Metal library from embedded data",
               *error ? [NSString stringWithFormat:@": %@",
                                                   (*error).localizedDescription]
                            .UTF8String
