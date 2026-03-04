@@ -1,5 +1,5 @@
 [general]
-name = "fused_rms_norm"
+name = "fused-rms-norm"
 backends = ["metal"]
 
 [torch]
